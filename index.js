@@ -10,7 +10,7 @@ const app = express();
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000', 'https://localhost:3000'],
   credentials: true
 }));
 
@@ -359,6 +359,17 @@ app.get('/api/health', (req, res) => {
       webClients: webClients.size,
       total: wss.clients.size
     }
+  });
+});
+
+// WebSocket test endpoint
+app.get('/api/ws-test', (req, res) => {
+  res.json({
+    message: 'WebSocket server is running',
+    path: '/ws',
+    clients: wss.clients.size,
+    devices: devices.size,
+    webClients: webClients.size
   });
 });
 
