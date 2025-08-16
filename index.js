@@ -373,6 +373,17 @@ app.get('/api/ws-test', (req, res) => {
   });
 });
 
+// Temporary HTTP endpoint for testing (fallback if WebSocket fails)
+app.post('/api/test-location', (req, res) => {
+  console.log('Received test location via HTTP:', req.body);
+  res.json({ success: true, received: req.body });
+});
+
+app.post('/api/test-find', (req, res) => {
+  console.log('Received find request via HTTP');
+  res.json({ success: true, message: 'Find request received' });
+});
+
 app.get('/api/location', (req, res) => {
   const latest = getLatestLocation();
   res.json({
