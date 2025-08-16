@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#667eea">
+  <title>Smart Stick Tracker</title>
+  
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Feather Icons -->
+  <script src="https://unpkg.com/feather-icons"></script>
+
+  <style>
+    :root {
+      --primary: #667eea;
+      --primary-dark: #5a67d8;
+      --secondary: #764ba2;
+      --accent: #f093fb;
+      --success: #48bb78;
+      --warning: #ed8936;
+      --danger: #f56565;
+      --dark: #1a202c;
+      --dark-light: #2d3748;
+      --light: #ffffff;
+      --light-gray: #f7fafc;
+      --gray: #a0aec0;
+      --text: #2d3748;
+      --text-light: #718096;
+      --border: rgba(255, 255, 255, 0.18);
+      --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      --blur: blur(20px);
+      --radius: 16px;
+      --radius-lg: 24px;
+    }
+
+    [data-theme="dark"] {
+      --primary: #90cdf4;
+      --primary-dark: #63b3ed;
+      --light: #1a202c;
+      --light-gray: #2d3748;
+      --text: #e2e8f0;
+      --text-light: #a0aec0;
+      --border: rgba(255, 255, 255, 0.1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: var(--blur);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 28px;
+      box-shadow: var(--shadow);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--light);
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent), var(--primary));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    .logo h1 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .logo p {
+      font-size: 14px;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 8px 16px;
+      border-radius: 999px;
+      color: var(--light);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--danger);
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.connected {
+      background: var(--success);
+    }
+
+    .status-dot.warning {
+      background: var(--warning);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .theme-toggle {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      border-radius: 12px;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--light);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .theme-toggle:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(1.05);
+    }
+
+    /* Main Content */
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 24px;
+      flex: 1;
+    }
+
+    .map-section {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border);
+      position: relative;
+    }
+
+    .map-header {
+      padding: 20px 24px;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .map-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .map-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .control-btn {
+      background: var(--primary);
+      border: none;
+      border-radius: 10px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 16px;
+    }
+
+    .control-btn:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px);
+    }
+
+    .control-btn.secondary {
+      background: var(--gray);
+    }
+
+    .control-btn.secondary:hover {
+      background: var(--text-light);
+    }
+
+    #map {
+      width: 100%;
+      height: 500px;
+    }
+
+    .map-overlay {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .action-btn {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: var(--blur);
+      border: none;
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow);
+    }
+
+    .action-btn.primary {
+      background: var(--danger);
+      color: white;
+    }
+
+    .action-btn.primary:hover {
+      background: #e53e3e;
+      transform: translateY(-2px);
+    }
+
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 1);
+      transform: translateY(-2px);
+    }
+
+    /* Sidebar */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .info-card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: between;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .card-badge {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .info-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .info-label {
+      font-size: 12px;
+      color: var(--text-light);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 500;
+    }
+
+    .info-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      background: var(--light-gray);
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .toggle-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .toggle-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--light-gray);
+      border-radius: 12px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: var(--gray);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .toggle-switch.active {
+      background: var(--primary);
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+         .toggle-switch.active::after {
+       transform: translateX(20px);
+     }
+
+     .find-me-setting {
+       background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1));
+       border-color: rgba(239, 68, 68, 0.2);
+     }
+
+     .settings-find-btn {
+       background: var(--danger);
+       color: white;
+       border: none;
+       border-radius: 10px;
+       padding: 8px 16px;
+       font-size: 14px;
+       font-weight: 500;
+       cursor: pointer;
+       display: flex;
+       align-items: center;
+       gap: 6px;
+       transition: all 0.3s ease;
+       box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+     }
+
+     .settings-find-btn:hover {
+       background: #dc2626;
+       transform: translateY(-1px);
+       box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+     }
+
+     .settings-find-btn:active {
+       transform: translateY(0);
+     }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+      .container {
+        padding: 16px;
+        gap: 16px;
+      }
+
+      .header {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+      }
+
+      .main-content {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .map-header {
+        padding: 16px 20px;
+      }
+
+      #map {
+        height: 400px;
+      }
+
+      .info-card {
+        padding: 20px;
+      }
+
+      .logo h1 {
+        font-size: 20px;
+      }
+
+      .map-overlay {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .action-btn {
+        padding: 14px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .header-controls {
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .map-controls {
+        flex-wrap: wrap;
+      }
+
+      #map {
+        height: 350px;
+      }
+    }
+
+    /* Dark theme adjustments */
+    [data-theme="dark"] .info-card,
+    [data-theme="dark"] .map-section {
+      background: rgba(26, 32, 44, 0.95);
+    }
+
+    [data-theme="dark"] .info-value,
+    [data-theme="dark"] .toggle-item {
+      background: var(--dark-light);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    [data-theme="dark"] .map-header {
+      background: linear-gradient(135deg, rgba(144, 205, 244, 0.1), rgba(159, 122, 234, 0.1));
+      border-bottom-color: rgba(255, 255, 255, 0.1);
+    }
+
+    [data-theme="dark"] .action-btn {
+      background: rgba(26, 32, 44, 0.95);
+      color: var(--text);
+    }
+
+    [data-theme="dark"] .action-btn:hover {
+      background: rgba(45, 55, 72, 0.95);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">
+          <i data-feather="navigation"></i>
+        </div>
+        <div>
+          <h1>Smart Stick Tracker</h1>
+          <p>Real-time location monitoring</p>
+        </div>
+      </div>
+      
+      <div class="header-controls">
+        <div class="status-indicator">
+          <div id="statusDot" class="status-dot"></div>
+          <span id="statusText">Connecting...</span>
+        </div>
+        
+        <button id="themeToggle" class="theme-toggle" title="Toggle theme">
+          <i data-feather="moon"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Map Section -->
+      <section class="map-section">
+        <div class="map-header">
+          <h2 class="map-title">
+            <i data-feather="map-pin"></i>
+            Live Location
+          </h2>
+          <div class="map-controls">
+            <button id="recenterBtn" class="control-btn" title="Recenter map">
+              <i data-feather="crosshair"></i>
+            </button>
+            <button id="fullscreenBtn" class="control-btn secondary" title="Toggle fullscreen">
+              <i data-feather="maximize"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div id="map"></div>
+        
+        <div class="map-overlay">
+          <button id="findMeBtn" class="action-btn primary">
+            <i data-feather="radio"></i>
+            Emergency Locate
+          </button>
+          <button id="shareBtn" class="action-btn">
+            <i data-feather="share-2"></i>
+            Share Location
+          </button>
+        </div>
+      </section>
+
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <!-- Location Info -->
+        <div class="info-card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i data-feather="info"></i>
+              Location Details
+            </h3>
+            <span class="card-badge">Live</span>
+          </div>
+          
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Latitude</span>
+              <span id="latValue" class="info-value">—</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Longitude</span>
+              <span id="lngValue" class="info-value">—</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Last Updated</span>
+              <span id="lastUpdate" class="info-value">—</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Accuracy</span>
+              <span id="accuracy" class="info-value">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings -->
+        <div class="info-card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i data-feather="settings"></i>
+              Tracking Settings
+            </h3>
+          </div>
+          
+          <div class="toggle-group">
+             <div class="toggle-item find-me-setting">
+               <div class="toggle-label">
+                 <i data-feather="radio"></i>
+                 Emergency Locate
+               </div>
+               <button id="settingsFindBtn" class="settings-find-btn">
+                 <i data-feather="search"></i>
+                 Find Now
+               </button>
+             </div>
+           </div>
+         </div>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    // Initialize Feather icons
+    feather.replace();
+
+    // WebSocket connection
+    const wsParam = new URLSearchParams(location.search).get('ws');
+    const isHttps = location.protocol === 'https:';
+    const defaultWs = `${isHttps ? 'wss' : 'ws'}://your-backend.onrender.com`;
+    const wsUrl = wsParam || defaultWs;
+    const ws = new WebSocket(wsUrl);
+
+    // Global variables
+    let map, marker, accuracyCircle;
+    let isAutoFollow = true;
+    let isNotifications = true;
+    let isHighAccuracy = false;
+
+    // DOM elements
+    const elements = {
+      statusDot: document.getElementById('statusDot'),
+      statusText: document.getElementById('statusText'),
+      latValue: document.getElementById('latValue'),
+      lngValue: document.getElementById('lngValue'),
+      lastUpdate: document.getElementById('lastUpdate'),
+      accuracy: document.getElementById('accuracy'),
+      themeToggle: document.getElementById('themeToggle'),
+      autoFollowToggle: document.getElementById('autoFollowToggle'),
+      notificationsToggle: document.getElementById('notificationsToggle'),
+      accuracyToggle: document.getElementById('accuracyToggle'),
+             findMeBtn: document.getElementById('findMeBtn'),
+       recenterBtn: document.getElementById('recenterBtn'),
+       shareBtn: document.getElementById('shareBtn'),
+       fullscreenBtn: document.getElementById('fullscreenBtn'),
+       settingsFindBtn: document.getElementById('settingsFindBtn')
+    };
+
+    // Map styles
+    const mapStyles = {
+      light: [
+        { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
+        { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+        { elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
+        { elementType: 'labels.text.stroke', stylers: [{ color: '#f5f5f5' }] },
+        { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c9c9c9' }] },
+        { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#9e9e9e' }] }
+      ],
+      dark: [
+        { elementType: 'geometry', stylers: [{ color: '#212121' }] },
+        { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+        { elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
+        { elementType: 'labels.text.stroke', stylers: [{ color: '#212121' }] },
+        { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#000000' }] },
+        { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#3d3d3d' }] }
+      ]
+    };
+
+    // Initialize map
+    function initMap(lat = 0, lng = 0) {
+      const isDark = document.body.getAttribute('data-theme') === 'dark';
+      
+      map = new google.maps.Map(document.getElementById('map'), {
+        center: { lat, lng },
+        zoom: 15,
+        disableDefaultUI: true,
+        styles: mapStyles[isDark ? 'dark' : 'light'],
+        gestureHandling: 'cooperative'
+      });
+
+      marker = new google.maps.Marker({
+        position: { lat, lng },
+        map: map,
+        animation: google.maps.Animation.DROP,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: '#667eea',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 3
+        }
+      });
+
+      accuracyCircle = new google.maps.Circle({
+        strokeColor: '#667eea',
+        strokeOpacity: 0.4,
+        strokeWeight: 2,
+        fillColor: '#667eea',
+        fillOpacity: 0.1,
+        map: map,
+        center: { lat, lng },
+        radius: 20
+      });
+    }
+
+    // Update connection status
+    function updateStatus(status, text) {
+      elements.statusDot.className = `status-dot ${status}`;
+      elements.statusText.textContent = text;
+    }
+
+    // Format coordinates
+    function formatCoordinate(coord) {
+      return typeof coord === 'number' ? coord.toFixed(6) : '—';
+    }
+
+    // Update location info
+    function updateLocationInfo(lat, lng, accuracy = null) {
+      elements.latValue.textContent = formatCoordinate(lat);
+      elements.lngValue.textContent = formatCoordinate(lng);
+      elements.lastUpdate.textContent = new Date().toLocaleTimeString();
+      elements.accuracy.textContent = accuracy ? `±${accuracy}m` : '—';
+    }
+
+    // Apply theme to map
+    function applyMapTheme() {
+      if (!map) return;
+      const isDark = document.body.getAttribute('data-theme') === 'dark';
+      map.setOptions({ styles: mapStyles[isDark ? 'dark' : 'light'] });
+    }
+
+    // Toggle functionality
+    function setupToggle(element, initialState, callback) {
+      let state = initialState;
+      element.addEventListener('click', () => {
+        state = !state;
+        element.classList.toggle('active', state);
+        callback(state);
+      });
+      element.classList.toggle('active', state);
+    }
+
+    // WebSocket events
+    ws.addEventListener('open', () => updateStatus('connected', 'Connected'));
+    ws.addEventListener('close', () => updateStatus('', 'Disconnected'));
+    ws.addEventListener('error', () => updateStatus('warning', 'Connection Error'));
+
+    ws.addEventListener('message', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'location') {
+          const pos = { lat: Number(data.lat), lng: Number(data.lng) };
+          const accuracy = data.accuracy ? Number(data.accuracy) : null;
+          
+          marker.setPosition(pos);
+          accuracyCircle.setCenter(pos);
+          if (accuracy) accuracyCircle.setRadius(accuracy);
+          
+          if (isAutoFollow) {
+            map.setCenter(pos);
+          }
+          
+          updateLocationInfo(pos.lat, pos.lng, accuracy);
+          
+          if (isNotifications && 'Notification' in window) {
+            // Request notification permission if needed
+            if (Notification.permission === 'default') {
+              Notification.requestPermission();
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Invalid WebSocket message:', e);
+      }
+    });
+
+         // Find Me functionality
+     function triggerFindMe(button, originalText, loadingText) {
+       if (ws.readyState === WebSocket.OPEN) {
+         ws.send(JSON.stringify({ type: 'FIND_ME' }));
+         button.innerHTML = loadingText;
+         feather.replace();
+         setTimeout(() => {
+           button.innerHTML = originalText;
+           feather.replace();
+         }, 3000);
+       } else {
+         // Show connection error
+         const originalBg = button.style.background;
+         button.innerHTML = '<i data-feather="wifi-off"></i>No Connection';
+         button.style.background = '#6b7280';
+         feather.replace();
+         setTimeout(() => {
+           button.innerHTML = originalText;
+           button.style.background = originalBg;
+           feather.replace();
+         }, 2000);
+       }
+     }
+
+     // Event listeners
+     elements.findMeBtn.addEventListener('click', () => {
+       triggerFindMe(
+         elements.findMeBtn,
+         '<i data-feather="radio"></i>Emergency Locate',
+         '<i data-feather="loader"></i>Locating...'
+       );
+     });
+
+     elements.settingsFindBtn.addEventListener('click', () => {
+       triggerFindMe(
+         elements.settingsFindBtn,
+         '<i data-feather="search"></i>Find Now',
+         '<i data-feather="loader"></i>Finding...'
+       );
+     });
+
+    elements.recenterBtn.addEventListener('click', () => {
+      const pos = marker.getPosition();
+      if (pos) map.setCenter(pos);
+    });
+
+    elements.shareBtn.addEventListener('click', async () => {
+      const lat = elements.latValue.textContent;
+      const lng = elements.lngValue.textContent;
+      const url = `https://www.google.com/maps?q=${lat},${lng}`;
+      
+      try {
+        if (navigator.share) {
+          await navigator.share({
+            title: 'Smart Stick Location',
+            text: 'Current location from Smart Stick Tracker',
+            url: url
+          });
+        } else {
+          await navigator.clipboard.writeText(url);
+          // Show temporary success message
+          const originalText = elements.shareBtn.innerHTML;
+          elements.shareBtn.innerHTML = '<i data-feather="check"></i>Copied!';
+          feather.replace();
+          setTimeout(() => {
+            elements.shareBtn.innerHTML = originalText;
+            feather.replace();
+          }, 2000);
+        }
+      } catch (e) {
+        console.warn('Share failed:', e);
+      }
+    });
+
+    elements.fullscreenBtn.addEventListener('click', () => {
+      const mapElement = document.getElementById('map');
+      if (!document.fullscreenElement) {
+        mapElement.requestFullscreen().catch(e => console.warn('Fullscreen failed:', e));
+      } else {
+        document.exitFullscreen();
+      }
+    });
+
+    // Theme toggle
+    elements.themeToggle.addEventListener('click', () => {
+      const isDark = document.body.getAttribute('data-theme') === 'dark';
+      const newTheme = isDark ? 'light' : 'dark';
+      document.body.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      
+      elements.themeToggle.innerHTML = `<i data-feather="${isDark ? 'moon' : 'sun'}"></i>`;
+      feather.replace();
+      applyMapTheme();
+    });
+
+    // Setup toggles
+    setupToggle(elements.autoFollowToggle, isAutoFollow, (state) => {
+      isAutoFollow = state;
+    });
+
+    setupToggle(elements.notificationsToggle, isNotifications, (state) => {
+      isNotifications = state;
+    });
+
+    setupToggle(elements.accuracyToggle, isHighAccuracy, (state) => {
+      isHighAccuracy = state;
+      // Could send accuracy preference to backend
+    });
+
+    // Initialize theme
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    if (savedTheme === 'dark') {
+      document.body.setAttribute('data-theme', 'dark');
+      elements.themeToggle.innerHTML = '<i data-feather="sun"></i>';
+    }
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+      if (map) google.maps.event.trigger(map, 'resize');
+    });
+
+    // Replace Feather icons after DOM updates
+    setTimeout(() => feather.replace(), 100);
+  </script>
+
+<script async defer src="https://maps.googleapis.com/maps/api/js?libraries=visualization&loading=async&callback=initMap"></script>
+</body>
+</html>
