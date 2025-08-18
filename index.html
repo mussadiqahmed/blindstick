@@ -593,8 +593,7 @@
     }
 
     // WebSocket connection - detect if mobile access needed
-    const isMobileAccess = window.location.search.includes('mobile') || window.innerWidth <= 768;
-    const wsUrl = isMobileAccess ? 'ws://192.168.43.132:3000/ws' : 'ws://localhost:3000/ws';
+    const wsUrl = 'wss://blindstick.onrender.com/ws';
     
     elements.connectionStatus.textContent = 'Establishing connection...';
     
