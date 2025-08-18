@@ -603,8 +603,8 @@
 
     ws.addEventListener('open', () => {
       addLog('✅ Successfully connected to Smart Stick system', 'success');
-      elements.statusDot.className = 'status-dot connected';
-      elements.statusText.textContent = 'Connected & Active';
+      elements.statusDot.className = 'status-dot';
+      elements.statusText.textContent = 'Connected (Waiting for device)';
       elements.connectionStatus.textContent = 'Connected';
       elements.connectionStatusTop.textContent = 'Link: Connected';
       
@@ -659,10 +659,21 @@
           currentLocation = { lat: data.lat, lng: data.lng };
           elements.copyLocationBtn.disabled = false;
         } else if (data.type === 'device_status') {
-          const statusText = data.status === 'connected' ? 'Online & Active' : 'Offline';
+          const online = data.status === 'connected';
+          const statusText = online ? 'Online & Active' : 'Offline';
           elements.deviceStatus.textContent = statusText;
           elements.deviceStatusTop.textContent = `Device: ${statusText}`;
+          elements.statusText.textContent = online ? 'Connected (Device Online)' : 'Connected (Device Offline)';
+          elements.statusDot.className = `status-dot ${online ? 'connected' : ''}`;
+          if (!online) {
+            elements.location.innerHTML = '<div class="coordinates">Searching for location...</div>';
+            elements.lastUpdate.textContent = '—';
+            elements.copyLocationBtn.disabled = true;
+            try { currentLocation = null; } catch (e) {}
+          }
           addLog(`📡 Device status: ${statusText}`, 'success');
+        } else if (data.type === 'find_response') {
+          addLog('📨 Find response received from server', data.success ? 'success' : 'warn');
         }
       } catch (e) {
         addLog('⚠️ Received invalid data from device', 'warning');
