@@ -651,8 +651,9 @@
     // WebSocket connection
     const wsParam = new URLSearchParams(location.search).get('ws');
     const isHttps = location.protocol === 'https:';
-    const defaultWs = `${isHttps ? 'wss' : 'ws'}://your-backend.onrender.com`;
+    const defaultWs = `${isHttps ? 'wss' : 'ws'}://blindstick.onrender.com/ws`;
     const wsUrl = wsParam || defaultWs;
+    console.log('Connecting to WebSocket:', wsUrl);
     const ws = new WebSocket(wsUrl);
 
     // Global variables
@@ -670,9 +671,9 @@
       lastUpdate: document.getElementById('lastUpdate'),
       accuracy: document.getElementById('accuracy'),
       themeToggle: document.getElementById('themeToggle'),
-      autoFollowToggle: document.getElementById('autoFollowToggle'),
-      notificationsToggle: document.getElementById('notificationsToggle'),
-      accuracyToggle: document.getElementById('accuracyToggle'),
+      // autoFollowToggle: document.getElementById('autoFollowToggle'),
+      // notificationsToggle: document.getElementById('notificationsToggle'),
+      // accuracyToggle: document.getElementById('accuracyToggle'),
              findMeBtn: document.getElementById('findMeBtn'),
        recenterBtn: document.getElementById('recenterBtn'),
        shareBtn: document.getElementById('shareBtn'),
@@ -702,40 +703,46 @@
 
     // Initialize map
     function initMap(lat = 0, lng = 0) {
-      const isDark = document.body.getAttribute('data-theme') === 'dark';
-      
-      map = new google.maps.Map(document.getElementById('map'), {
-        center: { lat, lng },
-        zoom: 15,
-        disableDefaultUI: true,
-        styles: mapStyles[isDark ? 'dark' : 'light'],
-        gestureHandling: 'cooperative'
-      });
+      try {
+        const isDark = document.body.getAttribute('data-theme') === 'dark';
+        
+        map = new google.maps.Map(document.getElementById('map'), {
+          center: { lat, lng },
+          zoom: 15,
+          disableDefaultUI: true,
+          styles: mapStyles[isDark ? 'dark' : 'light'],
+          gestureHandling: 'cooperative'
+        });
 
-      marker = new google.maps.Marker({
-        position: { lat, lng },
-        map: map,
-        animation: google.maps.Animation.DROP,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 8,
+        marker = new google.maps.Marker({
+          position: { lat, lng },
+          map: map,
+          animation: google.maps.Animation.DROP,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: '#667eea',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 3
+          }
+        });
+
+        accuracyCircle = new google.maps.Circle({
+          strokeColor: '#667eea',
+          strokeOpacity: 0.4,
+          strokeWeight: 2,
           fillColor: '#667eea',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 3
-        }
-      });
-
-      accuracyCircle = new google.maps.Circle({
-        strokeColor: '#667eea',
-        strokeOpacity: 0.4,
-        strokeWeight: 2,
-        fillColor: '#667eea',
-        fillOpacity: 0.1,
-        map: map,
-        center: { lat, lng },
-        radius: 20
-      });
+          fillOpacity: 0.1,
+          map: map,
+          center: { lat, lng },
+          radius: 20
+        });
+      } catch (error) {
+        console.error('Failed to initialize Google Maps:', error);
+        // Show fallback message
+        document.getElementById('map').innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f5f5f5; color: #666; font-size: 16px;">Map unavailable - Please add Google Maps API key</div>';
+      }
     }
 
     // Update connection status
@@ -776,14 +783,29 @@
     }
 
     // WebSocket events
-    ws.addEventListener('open', () => updateStatus('connected', 'Connected'));
-    ws.addEventListener('close', () => updateStatus('', 'Disconnected'));
-    ws.addEventListener('error', () => updateStatus('warning', 'Connection Error'));
+    ws.addEventListener('open', () => {
+      console.log('WebSocket connected successfully');
+      updateStatus('connected', 'Connected');
+      // Send hello message to identify as web client
+      ws.send(JSON.stringify({ type: 'hello', role: 'web' }));
+      console.log('Sent hello message as web client');
+    });
+    ws.addEventListener('close', (event) => {
+      console.log('WebSocket closed:', event.code, event.reason);
+      updateStatus('', 'Disconnected');
+    });
+    ws.addEventListener('error', (error) => {
+      console.error('WebSocket error:', error);
+      updateStatus('warning', 'Connection Error');
+    });
 
     ws.addEventListener('message', (event) => {
       try {
         const data = JSON.parse(event.data);
+        console.log('Received WebSocket message:', data);
+        
         if (data.type === 'location') {
+          console.log('Location update:', data);
           const pos = { lat: Number(data.lat), lng: Number(data.lng) };
           const accuracy = data.accuracy ? Number(data.accuracy) : null;
           
@@ -803,6 +825,10 @@
               Notification.requestPermission();
             }
           }
+        } else if (data.type === 'device_status') {
+          console.log('Device status update:', data);
+        } else if (data.type === 'find_response') {
+          console.log('Find response:', data);
         }
       } catch (e) {
         console.warn('Invalid WebSocket message:', e);
@@ -812,7 +838,8 @@
          // Find Me functionality
      function triggerFindMe(button, originalText, loadingText) {
        if (ws.readyState === WebSocket.OPEN) {
-         ws.send(JSON.stringify({ type: 'FIND_ME' }));
+         ws.send(JSON.stringify({ type: 'FIND_ME', deviceId: 'default-device' }));
+         console.log('Sent Find Me command to device');
          button.innerHTML = loadingText;
          feather.replace();
          setTimeout(() => {
@@ -904,19 +931,19 @@
       applyMapTheme();
     });
 
-    // Setup toggles
-    setupToggle(elements.autoFollowToggle, isAutoFollow, (state) => {
-      isAutoFollow = state;
-    });
+    // Setup toggles (commented out since elements don't exist in HTML)
+    // setupToggle(elements.autoFollowToggle, isAutoFollow, (state) => {
+    //   isAutoFollow = state;
+    // });
 
-    setupToggle(elements.notificationsToggle, isNotifications, (state) => {
-      isNotifications = state;
-    });
+    // setupToggle(elements.notificationsToggle, isNotifications, (state) => {
+    //   isNotifications = state;
+    // });
 
-    setupToggle(elements.accuracyToggle, isHighAccuracy, (state) => {
-      isHighAccuracy = state;
-      // Could send accuracy preference to backend
-    });
+    // setupToggle(elements.accuracyToggle, isHighAccuracy, (state) => {
+    //   isHighAccuracy = state;
+    //   // Could send accuracy preference to backend
+    // });
 
     // Initialize theme
     const savedTheme = localStorage.getItem('theme') || 'light';

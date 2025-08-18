@@ -4,6 +4,7 @@ const WebSocket = require('ws');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
+const os = require('os');
 
 const app = express();
 
@@ -62,6 +63,19 @@ function log(level, message, data = {}) {
     message,
     ...data
   }));
+}
+
+function getLocalIPv4() {
+  const nets = os.networkInterfaces();
+  const results = [];
+  Object.keys(nets).forEach((name) => {
+    nets[name].forEach((net) => {
+      if (net.family === 'IPv4' && !net.internal) {
+        results.push({ iface: name, address: net.address });
+      }
+    });
+  });
+  return results;
 }
 
 function broadcastToWeb(data, excludeSocket = null) {
@@ -485,4 +499,12 @@ server.listen(PORT, () => {
     port: PORT, 
     env: process.env.NODE_ENV || 'development' 
   });
+
+  const ips = getLocalIPv4();
+  if (ips.length > 0) {
+    const wsUrls = ips.map(i => `ws://${i.address}:${PORT}/ws`);
+    log('info', 'Use these URLs for ESP32 WS_HOST', { ws: wsUrls, interfaces: ips });
+  } else {
+    log('warn', 'No external IPv4 addresses found. Connect to Wi‑Fi or check network.');
+  }
 });

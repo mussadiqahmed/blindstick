@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Connection Test</title>
+</head>
+<body>
+    <h1>WebSocket Connection Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="log"></div>
+    
+    <script>
+        const log = document.getElementById('log');
+        const status = document.getElementById('status');
+        
+        function addLog(message) {
+            const div = document.createElement('div');
+            div.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            log.appendChild(div);
+            console.log(message);
+        }
+        
+        // Try different WebSocket URLs
+        const urls = [
+            'wss://blindstick.onrender.com/ws',
+            'ws://blindstick.onrender.com/ws',
+            'wss://blindstick.onrender.com',
+            'ws://blindstick.onrender.com'
+        ];
+        
+        function testConnection(url, index = 0) {
+            if (index >= urls.length) {
+                addLog('All connection attempts failed');
+                status.textContent = 'All connections failed';
+                return;
+            }
+            
+            const currentUrl = urls[index];
+            addLog(`Trying: ${currentUrl}`);
+            status.textContent = `Trying ${index + 1}/${urls.length}: ${currentUrl}`;
+            
+            const ws = new WebSocket(currentUrl);
+            
+            const timeout = setTimeout(() => {
+                ws.close();
+                addLog(`Timeout for ${currentUrl}`);
+                testConnection(url, index + 1);
+            }, 5000);
+            
+            ws.addEventListener('open', () => {
+                clearTimeout(timeout);
+                addLog(`✅ Connected to: ${currentUrl}`);
+                status.textContent = `Connected to: ${currentUrl}`;
+                
+                // Send hello message
+                ws.send(JSON.stringify({ type: 'hello', role: 'web' }));
+                addLog('Sent hello message');
+            });
+            
+            ws.addEventListener('close', (event) => {
+                clearTimeout(timeout);
+                addLog(`❌ Closed: ${currentUrl} (Code: ${event.code}, Reason: ${event.reason})`);
+                if (index < urls.length - 1) {
+                    setTimeout(() => testConnection(url, index + 1), 1000);
+                }
+            });
+            
+            ws.addEventListener('error', (error) => {
+                clearTimeout(timeout);
+                addLog(`❌ Error: ${currentUrl} - ${error}`);
+            });
+            
+            ws.addEventListener('message', (event) => {
+                addLog(`📨 Message: ${event.data}`);
+            });
+        }
+        
+        testConnection();
+    </script>
+</body>
+</html> 
